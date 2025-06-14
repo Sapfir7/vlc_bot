@@ -133,30 +133,23 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 def main() -> None:
-    """Запуск бота"""
-    # Вставь свой токен от @BotFather
-    TOKEN = os.getenv("7307124408:AAGap9FL3Azhgb0qZb_Psr7wQjjxl2-wXLk")
+    """Запуск бота через Webhook для Render"""
+    TOKEN = os.getenv("BOT_TOKEN")  # ← вот так правильно!
+
+    if not TOKEN:
+        raise RuntimeError("❌ BOT_TOKEN не найден. Убедись, что добавил его в Render → Environment.")
+
     application = Application.builder().token(TOKEN).build()
 
-    # Настройка ConversationHandler
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start),
-            MessageHandler(
-                filters.Regex('^(📢 Предложить новость|🎉 Предложить мероприятие|📞 Связь с админом)$'),
-                button_handler
-            )
+            MessageHandler(filters.Regex('^(📢 Предложить новость|🎉 Предложить мероприятие|📞 Связь с админом)$'), button_handler)
         ],
         states={
             CHOOSING: [
-                MessageHandler(
-                    filters.Regex('^(📢 Предложить новость|🎉 Предложить мероприятие|📞 Связь с админом)$'),
-                    button_handler
-                ),
-                MessageHandler(
-                    filters.ALL & ~filters.Regex('^(📢 Предложить новость|🎉 Предложить мероприятие|📞 Связь с админом)$') & ~filters.COMMAND,
-                    lambda update, context: update.message.reply_text("Пожалуйста, выбери одну из кнопок!👇", reply_markup=markup) or CHOOSING
-                )
+                MessageHandler(filters.Regex('^(📢 Предложить новость|🎉 Предложить мероприятие|📞 Связь с админом)$'), button_handler),
+                MessageHandler(filters.ALL & ~filters.COMMAND, send_to_admin)
             ],
             TYPING_REPLY: [
                 MessageHandler(filters.ALL & ~filters.COMMAND, send_to_admin)
@@ -168,13 +161,11 @@ def main() -> None:
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("reply", reply))
 
-    # Запуск бота через polling
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", 8443)),
         webhook_url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{TOKEN}"
     )
-
 
 if __name__ == '__main__':
     main()

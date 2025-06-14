@@ -1,4 +1,6 @@
 import logging
+import os
+
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 
@@ -133,7 +135,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 def main() -> None:
     """Запуск бота"""
     # Вставь свой токен от @BotFather
-    application = Application.builder().token("7307124408:AAGap9FL3Azhgb0qZb_Psr7wQjjxl2-wXLk").build()
+    TOKEN = os.getenv("7307124408:AAGap9FL3Azhgb0qZb_Psr7wQjjxl2-wXLk")
+    application = Application.builder().token(TOKEN).build()
 
     # Настройка ConversationHandler
     conv_handler = ConversationHandler(
@@ -166,7 +169,12 @@ def main() -> None:
     application.add_handler(CommandHandler("reply", reply))
 
     # Запуск бота через polling
-    application.run_polling()
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 8443)),
+        webhook_url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{TOKEN}"
+    )
+
 
 if __name__ == '__main__':
     main()
